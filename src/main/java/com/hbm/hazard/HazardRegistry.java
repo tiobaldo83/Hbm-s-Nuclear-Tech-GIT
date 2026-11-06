@@ -259,6 +259,21 @@ public class HazardRegistry {
 		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 4), makeData(RADIATION, 5F));
 		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 5), makeData(RADIATION, 10F));
 
+		// заражённые блоки, перенесённые с 1.12.2: излучение растёт с уровнем заражения (meta 0..6)
+		HazardSystem.register(ModBlocks.waste_ice, makeData(RADIATION, 20F));
+		for(int i = 0; i < 7; i++) {
+			HazardSystem.register(new ItemStack(ModBlocks.waste_dirt, 1, i), makeData(RADIATION, (i + 1) * 1F));
+			HazardSystem.register(new ItemStack(ModBlocks.waste_gravel, 1, i), makeData(RADIATION, (i + 1) * 2.5F));
+			HazardSystem.register(new ItemStack(ModBlocks.waste_sand, 1, i), makeData(RADIATION, (i + 1) * 5F));
+			HazardSystem.register(new ItemStack(ModBlocks.waste_sand_red, 1, i), makeData(RADIATION, (i + 1) * 5F));
+			HazardSystem.register(new ItemStack(ModBlocks.waste_sandstone, 1, i), makeData(RADIATION, (i + 1) * 2.5F));
+			HazardSystem.register(new ItemStack(ModBlocks.waste_sandstone_red, 1, i), makeData(RADIATION, (i + 1) * 2.5F));
+			HazardSystem.register(new ItemStack(ModBlocks.waste_terracotta, 1, i), makeData(RADIATION, (i + 1) * 2.5F));
+			HazardSystem.register(new ItemStack(ModBlocks.waste_grass_tall, 1, i), makeData(RADIATION, (i + 1) * 2.5F));
+			HazardSystem.register(new ItemStack(ModBlocks.waste_snow, 1, i), makeData(RADIATION, (i + 1) * 0.15F));
+			HazardSystem.register(new ItemStack(ModBlocks.waste_snow_block, 1, i), makeData(RADIATION, (i + 1) * 1.5F));
+		}
+
 		HazardSystem.register(new ItemStack(ModBlocks.ore_sellafield_radgem), makeData(RADIATION, 25F));
 		HazardSystem.register(new ItemStack(ModItems.gem_rad), makeData(RADIATION, 25F));
 

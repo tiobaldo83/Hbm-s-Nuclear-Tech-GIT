@@ -566,6 +566,18 @@ public class ModBlocks {
 	public static Block sapling_pvc;
 
 	public static Block waste_earth;
+	// заражённые блоки с 7 уровнями заражения, перенесены с 1.12.2
+	public static Block waste_dirt;
+	public static Block waste_gravel;
+	public static Block waste_sand;
+	public static Block waste_sand_red;
+	public static Block waste_sandstone;
+	public static Block waste_sandstone_red;
+	public static Block waste_terracotta;
+	public static Block waste_grass_tall;
+	public static Block waste_snow;
+	public static Block waste_snow_block;
+	public static Block waste_ice;
 	public static Block waste_mycelium;
 	public static Block waste_trinitite;
 	public static Block waste_trinitite_red;
@@ -1928,6 +1940,17 @@ public class ModBlocks {
 		waste_earth = new WasteEarth(Material.ground, true).setBlockName("waste_earth").setStepSound(Block.soundTypeGrass).setCreativeTab(MainRegistry.blockTab).setHardness(0.6F).setBlockTextureName(RefStrings.MODID + ":waste_earth");
 		waste_mycelium = new WasteEarth(Material.ground, true).setBlockName("waste_mycelium").setStepSound(Block.soundTypeGrass).setLightLevel(1F).setCreativeTab(MainRegistry.blockTab).setHardness(0.6F).setBlockTextureName(RefStrings.MODID + ":waste_mycelium_side");
 		waste_trinitite = new BlockTrinitite(Material.sand).noFortune().setBlockName("waste_trinitite").setStepSound(Block.soundTypeSand).setCreativeTab(MainRegistry.blockTab).setHardness(0.5F).setResistance(2.5F).setBlockTextureName(RefStrings.MODID + ":waste_trinitite");
+		waste_dirt = new BlockWasteLevel(Material.ground, "contamination/dirt/waste_dirt", false).setWalkRadiation(20 * 20, 9).setBlockName("waste_dirt").setStepSound(Block.soundTypeGravel).setCreativeTab(MainRegistry.blockTab).setHardness(0.5F).setResistance(1.0F);
+		waste_gravel = new BlockWasteLevelFalling(Material.sand, "contamination/gravel/waste_gravel").setWalkRadiation(2 * 60 * 20, 2).setBlockName("waste_gravel").setStepSound(Block.soundTypeGravel).setCreativeTab(MainRegistry.blockTab).setHardness(0.5F).setResistance(1.0F);
+		waste_sand = new BlockWasteLevelFalling(Material.sand, "contamination/sand/waste_sand").setWalkRadiation(15 * 20, 4).setBlockName("waste_sand").setStepSound(Block.soundTypeSand).setCreativeTab(MainRegistry.blockTab).setHardness(0.5F).setResistance(1.0F);
+		waste_sand_red = new BlockWasteLevelFalling(Material.sand, "contamination/red_sand/waste_red_sand").setWalkRadiation(20 * 20, 3).setBlockName("waste_sand_red").setStepSound(Block.soundTypeSand).setCreativeTab(MainRegistry.blockTab).setHardness(0.5F).setResistance(1.0F);
+		waste_sandstone = new BlockWasteLevel(Material.rock, "contamination/sandstone/waste_sandstone", true).setChunkRad(0.25F).setBlockName("waste_sandstone").setStepSound(Block.soundTypeStone).setCreativeTab(MainRegistry.blockTab).setHardness(3.0F).setResistance(6.0F);
+		waste_sandstone_red = new BlockWasteLevel(Material.rock, "contamination/red_sandstone/waste_red_sandstone", true).setChunkRad(0.25F).setBlockName("waste_sandstone_red").setStepSound(Block.soundTypeStone).setCreativeTab(MainRegistry.blockTab).setHardness(3.0F).setResistance(6.0F);
+		waste_terracotta = new BlockWasteLevel(Material.rock, "contamination/terracotta/waste_terracotta", false).setChunkRad(0.25F).setBlockName("waste_terracotta").setStepSound(Block.soundTypeStone).setCreativeTab(MainRegistry.blockTab).setHardness(4.0F).setResistance(8.0F);
+		waste_grass_tall = new BlockWasteGrassTall("contamination/grass_tall/waste_grass_tall").setBlockName("waste_grass_tall").setStepSound(Block.soundTypeGrass).setCreativeTab(MainRegistry.blockTab).setHardness(0.0F);
+		waste_snow = new BlockWastePowder(Material.snow, "contamination/snow/waste_snow").setBlockName("waste_snow").setStepSound(Block.soundTypeSnow).setCreativeTab(MainRegistry.blockTab).setHardness(0.1F).setLightOpacity(0);
+		waste_snow_block = new BlockWasteLevel(Material.craftedSnow, "contamination/snow/waste_snow", false).setChunkRad(0.15F).setBlockName("waste_snow_block").setStepSound(Block.soundTypeSnow).setCreativeTab(MainRegistry.blockTab).setHardness(0.2F);
+		waste_ice = new BlockWasteIce().setBlockName("waste_ice").setStepSound(Block.soundTypeGlass).setCreativeTab(MainRegistry.blockTab).setHardness(0.5F).setLightOpacity(3).setBlockTextureName(RefStrings.MODID + ":waste_ice");
 		waste_trinitite_red = new BlockTrinitite(Material.sand).noFortune().setBlockName("waste_trinitite_red").setStepSound(Block.soundTypeSand).setCreativeTab(MainRegistry.blockTab).setHardness(0.5F).setResistance(2.5F).setBlockTextureName(RefStrings.MODID + ":waste_trinitite_red");
 		waste_log = new WasteLog(Material.wood).setBlockName("waste_log").setStepSound(Block.soundTypeWood).setCreativeTab(MainRegistry.blockTab).setHardness(5.0F).setResistance(2.5F);
 		waste_leaves = new WasteLeaves(Material.leaves).setBlockName("waste_leaves").setStepSound(Block.soundTypeGrass).setCreativeTab(MainRegistry.blockTab).setHardness(0.1F).setBlockTextureName(RefStrings.MODID + ":waste_leaves");
@@ -3274,6 +3297,17 @@ public class ModBlocks {
 		//Waste
 		GameRegistry.registerBlock(waste_earth, waste_earth.getUnlocalizedName());
 		GameRegistry.registerBlock(waste_mycelium, waste_mycelium.getUnlocalizedName());
+		GameRegistry.registerBlock(waste_dirt, ItemBlockMeta.class, waste_dirt.getUnlocalizedName());
+		GameRegistry.registerBlock(waste_gravel, ItemBlockMeta.class, waste_gravel.getUnlocalizedName());
+		GameRegistry.registerBlock(waste_sand, ItemBlockMeta.class, waste_sand.getUnlocalizedName());
+		GameRegistry.registerBlock(waste_sand_red, ItemBlockMeta.class, waste_sand_red.getUnlocalizedName());
+		GameRegistry.registerBlock(waste_sandstone, ItemBlockMeta.class, waste_sandstone.getUnlocalizedName());
+		GameRegistry.registerBlock(waste_sandstone_red, ItemBlockMeta.class, waste_sandstone_red.getUnlocalizedName());
+		GameRegistry.registerBlock(waste_terracotta, ItemBlockMeta.class, waste_terracotta.getUnlocalizedName());
+		GameRegistry.registerBlock(waste_grass_tall, ItemBlockMeta.class, waste_grass_tall.getUnlocalizedName());
+		GameRegistry.registerBlock(waste_snow, ItemBlockMeta.class, waste_snow.getUnlocalizedName());
+		GameRegistry.registerBlock(waste_snow_block, ItemBlockMeta.class, waste_snow_block.getUnlocalizedName());
+		GameRegistry.registerBlock(waste_ice, waste_ice.getUnlocalizedName());
 		GameRegistry.registerBlock(waste_trinitite, waste_trinitite.getUnlocalizedName());
 		GameRegistry.registerBlock(waste_trinitite_red, waste_trinitite_red.getUnlocalizedName());
 		GameRegistry.registerBlock(waste_log, waste_log.getUnlocalizedName());
