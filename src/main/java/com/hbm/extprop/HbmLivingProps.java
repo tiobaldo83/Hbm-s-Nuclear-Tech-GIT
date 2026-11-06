@@ -48,6 +48,9 @@ public class HbmLivingProps implements IExtendedEntityProperties {
 	public static final int maxBlacklung = 2 * 60 * 60 * 20;
 	private float radEnv;
 	private float radBuf;
+	/** доля radEnv/radBuf, пришедшая от предметов в инвентаре (для счётчика Гейгера, не сохраняется) */
+	private float radEnvInv;
+	private float radBufInv;
 	private int contagion;
 	private int oil;
 	private float activation;
@@ -138,6 +141,23 @@ public class HbmLivingProps implements IExtendedEntityProperties {
 
 	public static void setRadEnv(EntityLivingBase entity, float rad) {
 		getData(entity).radEnv = rad;
+	}
+
+	/// RAD ENV / BUF FROM INVENTORY ///
+	public static float getRadEnvInv(EntityLivingBase entity) {
+		return getData(entity).radEnvInv;
+	}
+
+	public static void setRadEnvInv(EntityLivingBase entity, float rad) {
+		getData(entity).radEnvInv = rad;
+	}
+
+	public static float getRadBufInv(EntityLivingBase entity) {
+		return getData(entity).radBufInv;
+	}
+
+	public static void setRadBufInv(EntityLivingBase entity, float rad) {
+		getData(entity).radBufInv = rad;
 	}
 
 	/// RAD BUF ///

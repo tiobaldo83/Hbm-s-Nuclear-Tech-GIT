@@ -147,18 +147,24 @@ public class ContaminationUtil {
 
 		World world = player.worldObj;
 
-		double eRad = ((int)(HbmLivingProps.getRadiation(player) * 10)) / 10D;
+		// как в 1.12.2: три знака после запятой
+		double eRad = ((long)(HbmLivingProps.getRadiation(player) * 1000D)) / 1000D;
+		double rads = ((long)(ChunkRadiationManager.proxy.getRadiation(world, (int) Math.floor(player.posX), (int) Math.floor(player.posY), (int) Math.floor(player.posZ)) * 1000D)) / 1000D;
 
-		double neut = ((int)(HbmLivingProps.getNeutronActivation(player) * 10)) / 10D;
-		
-		double rads = ((int)(ChunkRadiationManager.proxy.getRadiation(world, (int) Math.floor(player.posX), (int) Math.floor(player.posY), (int) Math.floor(player.posZ)) * 10)) / 10D;
-		double env = ((int)(HbmLivingProps.getRadBuf(player) * 10D)) / 10D;
+		// всё входящее излучение за последнюю секунду (среда + инвентарь), RAD/s
+		double total = HbmLivingProps.getRadBuf(player);
+		// только среда: без излучения от предметов в инвентаре
+		double env = ((long)(Math.max(0D, total - HbmLivingProps.getRadBufInv(player)) * 1000D)) / 1000D;
 
-		double res = ((int)(10000D - ContaminationUtil.calculateRadiationMod(player) * 10000D)) / 100D;
-		double resKoeff = ((int)(HazmatRegistry.getResistance(player) * 100D)) / 100D;
+		double res = Math.max(0D, Math.min(100D, (1D - ContaminationUtil.calculateRadiationMod(player)) * 100D));
+		double resKoeff = ((long)(HazmatRegistry.getResistance(player) * 1000D)) / 1000D;
+
+		// получаемое игроком: среда + инвентарь с учётом радиационной защиты брони
+		double rec = ((long)(total * (100D - res) / 100D * 1000D)) / 1000D;
 
 		String chunkPrefix = getPreffixFromRad(rads);
 		String envPrefix = getPreffixFromRad(env);
+		String recPrefix = getPreffixFromRad(rec);
 		String radPrefix = "";
 		String resPrefix = "" + EnumChatFormatting.WHITE;
 
@@ -183,9 +189,9 @@ public class ContaminationUtil {
 		player.addChatMessage(new ChatComponentText("===== ☢ ").appendSibling(new ChatComponentTranslation("geiger.title")).appendSibling(new ChatComponentText(" ☢ =====")).setChatStyle(new ChatStyle().setColor(EnumChatFormatting.GOLD)));
 		player.addChatMessage(new ChatComponentTranslation("geiger.chunkRad").appendSibling(new ChatComponentText(" " + chunkPrefix + rads + " RAD/s")).setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)));
 		player.addChatMessage(new ChatComponentTranslation("geiger.envRad").appendSibling(new ChatComponentText(" " + envPrefix + env + " RAD/s")).setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)));
+		player.addChatMessage(new ChatComponentTranslation("geiger.recievedRad").appendSibling(new ChatComponentText(" " + recPrefix + rec + " RAD/s")).setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)));
 		player.addChatMessage(new ChatComponentTranslation("geiger.playerRad").appendSibling(new ChatComponentText(" " + radPrefix + eRad + " RAD")).setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)));
-		player.addChatMessage(new ChatComponentTranslation("geiger.playerAct").appendSibling(new ChatComponentText(" " + envPrefix + neut + " RAD/s")).setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)));
-		player.addChatMessage(new ChatComponentTranslation("geiger.playerRes").appendSibling(new ChatComponentText(" " + resPrefix + res + "% (" + resKoeff + ")")).setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)));
+		player.addChatMessage(new ChatComponentTranslation("geiger.playerRes").appendSibling(new ChatComponentText(" " + resPrefix + String.format("%.6f", res) + "% (" + resKoeff + ")")).setChatStyle(new ChatStyle().setColor(EnumChatFormatting.YELLOW)));
 	}
 
 	public static void printDosimeterData(EntityPlayer player) {
@@ -235,6 +241,9 @@ public class ContaminationUtil {
 		player.addChatMessage(new ChatComponentTranslation("digamma.playerRes").appendSibling(new ChatComponentText(EnumChatFormatting.BLUE + " " + "N/A")).setChatStyle(new ChatStyle().setColor(EnumChatFormatting.LIGHT_PURPLE)));
 	}
 
+	/** true, пока HazardSystem обрабатывает инвентарь: такое излучение счётчик Гейгера не относит к среде (только серверный поток) */
+	public static boolean fromInventory = false;
+
 	public static enum HazardType {
 		RADIATION,
 		NEUTRON,
@@ -262,11 +271,13 @@ public class ContaminationUtil {
 		if(hazard == HazardType.RADIATION) {
 			float radEnv = HbmLivingProps.getRadEnv(entity);
 			HbmLivingProps.setRadEnv(entity, radEnv + amount);
+			if(fromInventory) HbmLivingProps.setRadEnvInv(entity, HbmLivingProps.getRadEnvInv(entity) + amount);
 		}
 		
 		if(hazard == HazardType.NEUTRON && !RadiationConfig.disableNeutron) {
 			float radEnv = HbmLivingProps.getRadEnv(entity);
 			HbmLivingProps.setRadEnv(entity, radEnv + amount*10);
+			if(fromInventory) HbmLivingProps.setRadEnvInv(entity, HbmLivingProps.getRadEnvInv(entity) + amount*10);
 		}
 
 		if(entity instanceof EntityPlayer) {

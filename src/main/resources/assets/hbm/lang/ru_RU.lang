@@ -1114,7 +1114,8 @@ fus.th4=Плазма (Гелий-4 + Тритий)
 geiger.chunkRad=Текущий уровень радиации в чанке:
 geiger.envRad=Общее радиационное заражение среды:
 geiger.playerRad=Уровень радиоактивного заражения игрока:
-geiger.playerRes=Защищённость игрока:
+geiger.playerRes=Радиационная защита игрока:
+geiger.recievedRad=Общее полученное облучение:
 geiger.title=СЧЁТЧИК ГЕЙГЕРА
 geiger.title.dosimeter=ДОЗИМЕТР
 

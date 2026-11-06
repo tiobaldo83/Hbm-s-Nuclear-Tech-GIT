@@ -1,5 +1,6 @@
 package com.hbm.hazard;
 
+import com.hbm.util.ContaminationUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -195,6 +196,15 @@ public class HazardSystem {
 	 * @param player
 	 */
 	public static void updatePlayerInventory(EntityPlayer player) {
+		ContaminationUtil.fromInventory = true;
+		try {
+			updatePlayerInventoryInner(player);
+		} finally {
+			ContaminationUtil.fromInventory = false;
+		}
+	}
+
+	private static void updatePlayerInventoryInner(EntityPlayer player) {
 
 		for(int i = 0; i < player.inventory.mainInventory.length; i++) {
 			
@@ -216,6 +226,15 @@ public class HazardSystem {
 	}
 
 	public static void updateLivingInventory(EntityLivingBase entity) {
+		ContaminationUtil.fromInventory = true;
+		try {
+			updateLivingInventoryInner(entity);
+		} finally {
+			ContaminationUtil.fromInventory = false;
+		}
+	}
+
+	private static void updateLivingInventoryInner(EntityLivingBase entity) {
 		
 		for(int i = 0; i < 5; i++) {
 			ItemStack stack = entity.getEquipmentInSlot(i);

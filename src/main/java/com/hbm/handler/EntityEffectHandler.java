@@ -80,6 +80,8 @@ public class EntityEffectHandler {
 		if(entity.ticksExisted % 20 == 0) {
 			HbmLivingProps.setRadBuf(entity, HbmLivingProps.getRadEnv(entity));
 			HbmLivingProps.setRadEnv(entity, 0);
+			HbmLivingProps.setRadBufInv(entity, HbmLivingProps.getRadEnvInv(entity));
+			HbmLivingProps.setRadEnvInv(entity, 0);
 		}
 
 		if(entity instanceof EntityPlayer && entity == MainRegistry.proxy.me()) {
