@@ -13,6 +13,10 @@ import com.hbm.world.WorldUtil;
 import com.hbm.world.biome.BiomeGenCraterBase;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockMushroom;
+import net.minecraft.block.BlockLog;
+import net.minecraft.block.BlockLeaves;
+import net.minecraft.block.BlockBush;
 import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
@@ -151,82 +155,282 @@ public class EntityFalloutRain extends EntityExplosionChunkloading {
 		Collections.reverse(outerChunksToProcess);
 	}
 
+	/*
+	 * Пороги расстояния как в 1.12.2 (EntityFalloutRain.setScale): там s0..s6 = 0.8..0.1 * радиус,
+	 * здесь dist уже в процентах от радиуса, поэтому пороги в процентах.
+	 */
+	private static final double S0 = 80, S1 = 65, S2 = 50, S3 = 40, S4 = 30, S5 = 20, S6 = 10;
+
+	/** Сколько слоёв камня заражать на этом расстоянии (1.12.2 getMaxStoneDepth). */
+	private static int getMaxStoneDepth(double dist) {
+		if(dist > S1) return 0;
+		if(dist > S2) return 1;
+		if(dist > S3) return 2;
+		if(dist > S4) return 3;
+		if(dist > S5) return 4;
+		if(dist > S6) return 5;
+		return 6;
+	}
+
+	/** Уровень заражения 0..6 по расстоянию со случайным разбросом (1.12.2 placeBlockFromDist). */
+	private int levelFromDist(double dist) {
+		double ranDist = dist * (1D + rand.nextDouble() * 0.2D);
+		if(ranDist > S1) return 0;
+		if(ranDist > S2) return 1;
+		if(ranDist > S3) return 2;
+		if(ranDist > S4) return 3;
+		if(ranDist > S5) return 4;
+		if(ranDist > S6) return 5;
+		return 6;
+	}
+
+	private void placeFromDist(double dist, Block block, int x, int y, int z) {
+		setBlock(x, y, z, block, levelFromDist(dist));
+	}
+
+	/** Уровень селлафита для камня (1.12.2): -1 = погашенный селлафит, 0..5 = селлафит ... селлафит-кориум. */
+	private int sellafieldLevel(double dist, int stoneDepth, int maxStoneDepth) {
+		double ranDist = dist * (1D + rand.nextDouble() * 0.1D);
+		if(ranDist > S1 || stoneDepth == maxStoneDepth) return -1;
+		if(ranDist > S2 || stoneDepth == maxStoneDepth - 1) return 0;
+		if(ranDist > S3 || stoneDepth == maxStoneDepth - 2) return 1;
+		if(ranDist > S4 || stoneDepth == maxStoneDepth - 3) return 2;
+		if(ranDist > S5 || stoneDepth == maxStoneDepth - 4) return 3;
+		if(ranDist > S6 || stoneDepth == maxStoneDepth - 5) return 4;
+		return 5;
+	}
+
+	/**
+	 * Заражение столбца блоков по правилам 1.12.2: трава, земля, песок, гравий, снег, лёд, песчаник,
+	 * глина превращаются в заражённые версии с уровнем по расстоянию, камень — в селлафит по глубине.
+	 * Блоки, которых нет в правилах 1.12.2 (руды NTM, особые блоки 1.7.10), обрабатываются как раньше —
+	 * через hbmFallout.json (FalloutConfigJSON).
+	 */
 	private void stomp(int x, int z, double dist) {
 
-		int depth = 0;
+		// за пределами 80% радиуса заражение редеет (1.12.2)
+		if(dist > S0 && rand.nextFloat() > 0.05F + (5F * (float) (S0 / dist) - 4F)) return;
+
+		int maxStoneDepth = getMaxStoneDepth(dist);
+		int stoneDepth = 0;
+		boolean reachedStone = false;
+		boolean lastReachedStone;
+		int contactHeight = -1;
+		int solidDepth = 0;
 
 		for(int y = 255; y >= 0; y--) {
 
-			if(depth >= 3) return;
-
 			Block b = worldObj.getBlock(x, y, z);
+			Material mat = b.getMaterial();
+			int meta = worldObj.getBlockMetadata(x, y, z);
+			lastReachedStone = reachedStone;
 
-			if(b.getMaterial() == Material.air || b == ModBlocks.fallout) continue;
+			if(mat != Material.air && contactHeight == -1) contactHeight = Math.min(y + 1, 255);
+
+			if(reachedStone && mat != Material.air) {
+				stoneDepth++;
+			} else {
+				reachedStone = mat == Material.rock;
+			}
+			if(reachedStone && stoneDepth > maxStoneDepth) break;
+
+			if(mat == Material.air || mat.isLiquid() || b == ModBlocks.fallout || b == ModBlocks.salted_fallout) continue;
 
 			if(b == ModBlocks.volcano_core) {
-				worldObj.setBlock(x, y, z, ModBlocks.volcano_rad_core, worldObj.getBlockMetadata(x, y, z), 3);
+				worldObj.setBlock(x, y, z, ModBlocks.volcano_rad_core, meta, 3);
 				continue;
 			}
 
+			if(b == Blocks.bedrock || b == ModBlocks.ore_bedrock_oil || b == ModBlocks.ore_bedrock) {
+				if(worldObj.isAirBlock(x, y + 1, z)) setBlock(x, y + 1, z, ModBlocks.toxic_block);
+				break;
+			}
+
+			// слой осадков на поверхности (1.7.10, с поддержкой солёной бомбы)
 			Block ab = worldObj.getBlock(x, y + 1, z);
-			int meta = worldObj.getBlockMetadata(x, y, z);
-
-			if(depth == 0 && b != ModBlocks.fallout && (ab == Blocks.air || (ab.isReplaceable(worldObj, x, y + 1, z) && !ab.getMaterial().isLiquid()))) {
-
+			if(y == contactHeight - 1 && (ab == Blocks.air || (ab.isReplaceable(worldObj, x, y + 1, z) && !ab.getMaterial().isLiquid()))) {
 				double d = dist / 100;
-
 				double chance = 0.1 - Math.pow((d - 0.7) * 1.0, 2);
-				//double chance = 1-d;
-				if(this.salted)
-				{
-					if(chance >= rand.nextDouble() && ModBlocks.fallout.canPlaceBlockAt(worldObj, x, y + 1, z))
-						setBlock(x, y + 1, z, ModBlocks.salted_fallout);
-				}
-				else
-				{
-					if(chance >= rand.nextDouble() && ModBlocks.fallout.canPlaceBlockAt(worldObj, x, y + 1, z))
-						setBlock(x, y + 1, z, ModBlocks.fallout);
-				}
+				Block layer = this.salted ? ModBlocks.salted_fallout : ModBlocks.fallout;
+				if(chance >= rand.nextDouble() && ModBlocks.fallout.canPlaceBlockAt(worldObj, x, y + 1, z)) setBlock(x, y + 1, z, layer);
 			}
 
 			if(dist < 65 && b.isFlammable(worldObj, x, y, z, ForgeDirection.UP)) {
-				if(rand.nextInt(5) == 0 && worldObj.getBlock(x, y + 1, z).isAir(worldObj, x, y + 1, z))
-					setBlock(x, y + 1, z, Blocks.fire);
+				if(rand.nextInt(5) == 0 && worldObj.getBlock(x, y + 1, z).isAir(worldObj, x, y + 1, z)) setBlock(x, y + 1, z, Blocks.fire);
 			}
 
+			if(convert1122(x, y, z, b, meta, dist, stoneDepth, maxStoneDepth, reachedStone, lastReachedStone)) {
+				if(b.isNormalCube()) solidDepth++;
+				letFall(x, y, z, dist, solidDepth);
+				continue;
+			}
+
+			// всё остальное — старые правила 1.7.10 из hbmFallout.json
 			boolean eval = false;
-
 			for(FalloutEntry entry : FalloutConfigJSON.entries) {
-
 				if(entry.eval(worldObj, x, y, z, b, meta, dist)) {
-					if(entry.isSolid()) {
-						depth++;
-					}
+					if(entry.isSolid()) solidDepth++;
 					eval = true;
 					break;
 				}
 			}
+			if(!eval && b.isNormalCube()) solidDepth++;
 
-			float hardness = b.getBlockHardness(worldObj, x, y, z);
-			if(y > 0 && dist < 65 && hardness <= Blocks.stonebrick.getExplosionResistance(null) && hardness >= 0/* && !b.hasTileEntity(worldObj.getBlockMetadata(x, y, z))*/ && !(b instanceof BlockDummyable)) {
+			letFall(x, y, z, dist, solidDepth);
 
-				if(worldObj.getBlock(x, y - 1, z) == Blocks.air) {
-					for(int i = 0; i <= depth; i++) {
-						Block block = worldObj.getBlock(x, y + i, z);
-						hardness = block.getBlockHardness(worldObj, x, y + i, z);
-						if(hardness <= Blocks.stonebrick.getExplosionResistance(null) && hardness >= 0) {
-							EntityFallingBlockNT entityfallingblock = new EntityFallingBlockNT(worldObj, x + 0.5D, y + 0.5D + i, z + 0.5D, block, worldObj.getBlockMetadata(x, y + i, z));
-							entityfallingblock.canDrop = false; //turn off block drops because block dropping was coded by a mule with dementia
-							worldObj.spawnEntityInWorld(entityfallingblock);
-						}
+			// очень прочные блоки (бункеры и т.п.) защищают то, что под ними (1.12.2)
+			if(b.getExplosionResistance(null) > 300) break;
+			// без камня: как в 1.7.10, не глубже трёх твёрдых слоёв
+			if(!reachedStone && solidDepth >= 3 + maxStoneDepth) break;
+		}
+	}
+
+	/** Обрушение висящих блоков у эпицентра (логика 1.7.10). */
+	private void letFall(int x, int y, int z, double dist, int depth) {
+		Block b = worldObj.getBlock(x, y, z);
+		float hardness = b.getBlockHardness(worldObj, x, y, z);
+		if(y > 0 && dist < 65 && hardness <= Blocks.stonebrick.getExplosionResistance(null) && hardness >= 0 && !(b instanceof BlockDummyable)) {
+			if(worldObj.getBlock(x, y - 1, z) == Blocks.air) {
+				for(int i = 0; i <= Math.min(depth, 3); i++) {
+					Block block = worldObj.getBlock(x, y + i, z);
+					hardness = block.getBlockHardness(worldObj, x, y + i, z);
+					if(block.getMaterial() != Material.air && hardness <= Blocks.stonebrick.getExplosionResistance(null) && hardness >= 0) {
+						EntityFallingBlockNT entityfallingblock = new EntityFallingBlockNT(worldObj, x + 0.5D, y + 0.5D + i, z + 0.5D, block, worldObj.getBlockMetadata(x, y + i, z));
+						entityfallingblock.canDrop = false;
+						worldObj.spawnEntityInWorld(entityfallingblock);
 					}
 				}
 			}
-
-			if(!eval && b.isNormalCube()) {
-				depth++;
-			}
 		}
+	}
+
+	/** Правила превращения блоков из 1.12.2 (EntityFalloutRain.doFallout). true — блок обработан. */
+	private boolean convert1122(int x, int y, int z, Block b, int meta, double dist, int stoneDepth, int maxStoneDepth, boolean reachedStone, boolean lastReachedStone) {
+
+		if(b == ModBlocks.waste_leaves) {
+			if(!(dist > S1)) worldObj.setBlockToAir(x, y, z);
+			return true;
+		}
+		if(b instanceof BlockLeaves) {
+			if(dist > S1) setBlock(x, y, z, ModBlocks.waste_leaves);
+			else worldObj.setBlockToAir(x, y, z);
+			return true;
+		}
+		if(b == Blocks.brown_mushroom || b == Blocks.red_mushroom) {
+			if(dist < S0) setBlock(x, y, z, ModBlocks.mush);
+			return true;
+		}
+		if(b == Blocks.brown_mushroom_block || b == Blocks.red_mushroom_block) {
+			if(dist < S0) setBlock(x, y, z, meta == 10 ? ModBlocks.mush_block_stem : ModBlocks.mush_block);
+			return true;
+		}
+		if(b == Blocks.stone || b == Blocks.cobblestone) {
+			int level = sellafieldLevel(dist, stoneDepth, maxStoneDepth);
+			if(level < 0) setBlock(x, y, z, ModBlocks.sellafield_slaked);
+			else setBlock(x, y, z, ModBlocks.sellafield, level);
+			return true;
+		}
+		// уже заражённый камень становится горячее (1.12.2)
+		if(b == ModBlocks.sellafield_slaked) {
+			setBlock(x, y, z, ModBlocks.sellafield, 0);
+			return true;
+		}
+		if(b == ModBlocks.sellafield) {
+			if(meta < 5) setBlock(x, y, z, ModBlocks.sellafield, meta + 1);
+			return true;
+		}
+		if(b == Blocks.grass) {
+			setBlock(x, y, z, ModBlocks.waste_earth);
+			return true;
+		}
+		if(b == Blocks.gravel) {
+			placeFromDist(dist, ModBlocks.waste_gravel, x, y, z);
+			return true;
+		}
+		if(b == Blocks.dirt) {
+			if(meta == 1) placeFromDist(dist, ModBlocks.waste_gravel, x, y, z);		// каменистая земля
+			else if(meta == 2) setBlock(x, y, z, ModBlocks.waste_mycelium);			// подзол
+			else placeFromDist(dist, ModBlocks.waste_dirt, x, y, z);
+			return true;
+		}
+		if(b == Blocks.farmland) {
+			placeFromDist(dist, ModBlocks.waste_dirt, x, y, z);
+			return true;
+		}
+		if(b == Blocks.snow_layer) {
+			placeFromDist(dist, ModBlocks.waste_snow, x, y, z);
+			return true;
+		}
+		if(b == Blocks.snow) {
+			placeFromDist(dist, ModBlocks.waste_snow_block, x, y, z);
+			return true;
+		}
+		if(b == Blocks.ice || b == Blocks.packed_ice) {
+			setBlock(x, y, z, ModBlocks.waste_ice);
+			return true;
+		}
+		if(b instanceof BlockBush && !(b instanceof BlockMushroom)) {
+			Block below = worldObj.getBlock(x, y - 1, z);
+			if(below == Blocks.farmland) {
+				placeFromDist(dist, ModBlocks.waste_dirt, x, y - 1, z);
+				placeFromDist(dist, ModBlocks.waste_grass_tall, x, y, z);
+			} else if(below == Blocks.grass) {
+				setBlock(x, y - 1, z, ModBlocks.waste_earth);
+				placeFromDist(dist, ModBlocks.waste_grass_tall, x, y, z);
+			} else if(below == Blocks.mycelium) {
+				setBlock(x, y - 1, z, ModBlocks.waste_mycelium);
+				setBlock(x, y, z, ModBlocks.mush);
+			} else {
+				worldObj.setBlockToAir(x, y, z);
+			}
+			return true;
+		}
+		if(b == Blocks.mycelium) {
+			setBlock(x, y, z, ModBlocks.waste_mycelium);
+			return true;
+		}
+		if(b == Blocks.sandstone) {
+			placeFromDist(dist, ModBlocks.waste_sandstone, x, y, z);
+			return true;
+		}
+		if(b == Blocks.hardened_clay || b == Blocks.stained_hardened_clay) {
+			placeFromDist(dist, ModBlocks.waste_terracotta, x, y, z);
+			return true;
+		}
+		if(b == Blocks.sand) {
+			if(rand.nextInt(60) == 0) setBlock(x, y, z, meta == 1 ? ModBlocks.waste_trinitite_red : ModBlocks.waste_trinitite);
+			else placeFromDist(dist, meta == 1 ? ModBlocks.waste_sand_red : ModBlocks.waste_sand, x, y, z);
+			return true;
+		}
+		if(b == Blocks.clay) {
+			setBlock(x, y, z, Blocks.hardened_clay);
+			return true;
+		}
+		if(b == Blocks.mossy_cobblestone) {
+			setBlock(x, y, z, Blocks.coal_ore);
+			return true;
+		}
+		if(b == Blocks.coal_ore) {
+			if(dist < S5) {
+				int ra = rand.nextInt(150);
+				if(ra < 7) setBlock(x, y, z, Blocks.diamond_ore);
+				else if(ra < 10) setBlock(x, y, z, Blocks.emerald_ore);
+			}
+			return true;
+		}
+		if(b instanceof BlockLog) {
+			if(dist < S1) setBlock(x, y, z, ModBlocks.waste_log, meta & 12);
+			return true;
+		}
+		if(b.getMaterial() == Material.wood && b != ModBlocks.waste_log && b != ModBlocks.waste_planks) {
+			if(dist < S1) setBlock(x, y, z, ModBlocks.waste_planks);
+			return true;
+		}
+		if(b == Blocks.vine) {
+			worldObj.setBlockToAir(x, y, z);
+			return true;
+		}
+		return false;
 	}
 
 	public void setBlock(int x, int y, int z, Block block) {
