@@ -35,7 +35,7 @@ public class BlockWasteLevel extends Block {
 	protected final String texBase;
 	/** true: отдельные текстуры _top_N, _bottom_N, _normal_N (как у песчаника) */
 	protected final boolean topBottom;
-	/** радиация в чанк за срабатывание (раз в секунду) на первом уровне; на уровне N — (N+1) раз больше. 0 = не излучает */
+	/** излучение блока на первом уровне заражения (как радиоактивность предмета); на уровне N — в (N+1) раз больше. 0 = не излучает */
 	protected float chunkRad = 0F;
 	/** эффект радиации при ходьбе: длительность в тиках и сила; potionTicks = 0 — без эффекта */
 	protected int potionTicks = 0;
@@ -53,7 +53,18 @@ public class BlockWasteLevel extends Block {
 
 	public BlockWasteLevel setChunkRad(float rad) {
 		this.chunkRad = rad;
+		this.setTickRandomly(rad > 0);
 		return this;
+	}
+
+	/**
+	 * Излучение блока в чанк как в 1.12.2 (BlockHazard + RadiationSavedData.incrementRad):
+	 * на каждом случайном тике добавляет 10% своей радиоактивности, пока радиация чанка ниже радиоактивности блока.
+	 */
+	public static void emitCapped(World world, int x, int y, int z, float hazard) {
+		if(hazard <= 0 || world.isRemote) return;
+		if(ChunkRadiationManager.proxy.getRadiation(world, x, y, z) < hazard)
+			ChunkRadiationManager.proxy.incrementRad(world, x, y, z, hazard * 0.1F);
 	}
 
 	public BlockWasteLevel setWalkRadiation(int ticks, int amplifier) {
@@ -63,22 +74,10 @@ public class BlockWasteLevel extends Block {
 	}
 
 	@Override
-	public void onBlockAdded(World world, int x, int y, int z) {
-		super.onBlockAdded(world, x, y, z);
-		if(chunkRad > 0) world.scheduleBlockUpdate(x, y, z, this, this.tickRate(world));
-	}
-
-	@Override
-	public int tickRate(World world) {
-		return chunkRad > 0 ? 20 : super.tickRate(world);
-	}
-
-	@Override
 	public void updateTick(World world, int x, int y, int z, Random rand) {
-		if(chunkRad > 0 && !world.isRemote) {
+		if(chunkRad > 0) {
 			int meta = world.getBlockMetadata(x, y, z);
-			ChunkRadiationManager.proxy.incrementRad(world, x, y, z, chunkRad * (Math.min(meta, LEVELS - 1) + 1));
-			world.scheduleBlockUpdate(x, y, z, this, this.tickRate(world));
+			emitCapped(world, x, y, z, chunkRad * (Math.min(meta, LEVELS - 1) + 1));
 		}
 	}
 

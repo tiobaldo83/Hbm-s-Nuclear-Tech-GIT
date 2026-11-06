@@ -252,13 +252,14 @@ public class HazardRegistry {
 		HazardSystem.register(block_corium, makeData(RADIATION, 150F));
 		HazardSystem.register(block_corium_cobble, makeData(RADIATION, 150F));
 
-		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 0), makeData(RADIATION, 0.5F));
-		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 1), makeData(RADIATION, 1F));
-		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 2), makeData(RADIATION, 2.5F));
-		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 3), makeData(RADIATION, 4F));
-		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 4), makeData(RADIATION, 5F));
-		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 5), makeData(RADIATION, 10F));
+		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 0), makeData(RADIATION, 5F));
+		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 1), makeData(RADIATION, 10F));
+		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 2), makeData(RADIATION, 20F));
+		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 3), makeData(RADIATION, 40F).addEntry(HOT, 5F));
+		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 4), makeData(RADIATION, 80F).addEntry(HOT, 5F));
+		HazardSystem.register(new ItemStack(ModBlocks.sellafield, 1, 5), makeData(RADIATION, 500F).addEntry(HOT, 5F));
 
+		HazardSystem.register(ModBlocks.sellafield_slaked, makeData(RADIATION, 2.5F)); // как в 1.12.2
 		// заражённые блоки, перенесённые с 1.12.2: излучение растёт с уровнем заражения (meta 0..6)
 		HazardSystem.register(ModBlocks.waste_ice, makeData(RADIATION, 20F));
 		for(int i = 0; i < 7; i++) {

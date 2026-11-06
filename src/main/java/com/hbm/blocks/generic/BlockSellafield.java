@@ -33,6 +33,8 @@ public class BlockSellafield extends BlockHazard {
 	
 	public static final int SELLAFITE_LEVELS = 6;
 	public static final int TEXTURE_VARIANTS = 4;
+	/** радиоактивность уровней селлафита в 1.12.2: селлафит, горячий, кипящий, пылающий, адский, кориум */
+	public static final float[] LEVEL_RAD = {5F, 10F, 20F, 40F, 80F, 500F};
 	
 	public BlockSellafield(Material mat) {
 		super(mat);
@@ -53,14 +55,8 @@ public class BlockSellafield extends BlockHazard {
 	public void updateTick(World world, int x, int y, int z, Random rand) {
 
 		int meta = world.getBlockMetadata(x, y, z);
-		ChunkRadiationManager.proxy.incrementRad(world, x, y, z, this.rad * (meta + 1));
-		
-		if(rand.nextInt(meta == 0 ? 25 : 15) == 0) {
-			if(meta > 0)
-				world.setBlockMetadataWithNotify(x, y, z, meta - 1, 2);
-			else
-				world.setBlock(x, y, z, ModBlocks.sellafield_slaked);
-		}
+		// радиация как в 1.12.2 (sellafield_0..4 и кориум); селлафит не остывает, как в 1.12.2
+		BlockWasteLevel.emitCapped(world, x, y, z, LEVEL_RAD[Math.abs(meta) % SELLAFITE_LEVELS]);
 	}
 
 	@Override public void onBlockAdded(World world, int x, int y, int z) { }

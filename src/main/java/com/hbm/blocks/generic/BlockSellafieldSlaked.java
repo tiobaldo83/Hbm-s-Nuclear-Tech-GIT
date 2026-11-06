@@ -1,6 +1,7 @@
 package com.hbm.blocks.generic;
 
 import java.awt.Color;
+import java.util.Random;
 
 import com.hbm.blocks.ModBlocks;
 import com.hbm.lib.RefStrings;
@@ -13,6 +14,7 @@ import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
 
 public class BlockSellafieldSlaked extends Block {
 
@@ -20,6 +22,13 @@ public class BlockSellafieldSlaked extends Block {
 	
 	public BlockSellafieldSlaked(Material mat) {
 		super(mat);
+		this.setTickRandomly(true);
+	}
+
+	/** погашенный селлафит слабо излучает, как в 1.12.2 (2.5 RAD/s); бедроковый вариант — нет */
+	@Override
+	public void updateTick(World world, int x, int y, int z, Random rand) {
+		if(this == ModBlocks.sellafield_slaked) BlockWasteLevel.emitCapped(world, x, y, z, 2.5F);
 	}
 
 	@Override
